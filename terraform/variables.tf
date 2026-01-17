@@ -73,12 +73,12 @@ variable "az_count" {
   default     = 2
 }
 
-variable "trusted_principal_role_arn" {
-  type        = string
-  description = "ARN of the Redpanda IAM role that will be assuming the db auth role"
-}
+#variable "trusted_principal_role_arn" {
+#  type        = string
+#  description = "ARN of the Redpanda IAM role that will be assuming the db auth role"
+#}
 
-variable "redpanda_aws_account_id" {
+variable "redpanda_aws_acct_id" {
   type        = string
   description = "The AWS acct ID where Redpanda is hosted"
 }

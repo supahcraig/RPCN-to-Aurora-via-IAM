@@ -255,7 +255,7 @@ resource "aws_iam_role" "allow_connect_to_aurora_iam_demo_user" {
 # IMPORTANT: rds-db:connect uses the *cluster* resource_id: aws_rds_cluster_instance.<...>.resource_id
 resource "aws_iam_role_policy" "allow_aurora_iam_demo_user_connect_policy" {
   name = "${var.name_prefix}-allow_aurora-iam-demo-user-connect_policy"
-  role = aws_iam_role.aurora_iam_demo_user.id
+  role = aws_iam_role.allow_connect_to_aurora_iam_demo_user.id
 
   policy = jsonencode({
     Version = "2012-10-17"
@@ -287,14 +287,10 @@ output "db_username" {
   value = var.db_username
 }
 
-output "db_password" {
-  value = var.db_password
-}
-
 output "aurora_instance_resource_id" {
   value = aws_rds_cluster.aurora.cluster_resource_id
 }
 
 output "iam_db_auth_role_arn" {
-  value = aws_iam_role.aurora_iam_demo_user.arn
+  value = aws_iam_role.allow_connect_to_aurora_iam_demo_user.arn
 }

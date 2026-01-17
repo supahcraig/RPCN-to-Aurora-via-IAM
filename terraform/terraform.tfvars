@@ -11,8 +11,8 @@ redpanda_cidr = "3.139.175.89/32" # example for allowing public access via Redpa
 #redpanda_cidr = "10.0.0.0/16"    # example for allowing Redpanda VPC access via private networking
 
 # These 2 variables are required in order to construct the name of the RPCN role that your database connect role will need to trust.
-redpanda_aws_account_id = 861276079005
-redpanda_cluster_id     = curl3eo533cmsnt23dv0
+redpanda_aws_acct_id     = "861276079005"            # the AWS account ID where your repdanda cluster is deployed
+redpanda_cluster_id      = "curl3eo533cmsnt23dv0"    # this will be YOUR cluster ID
 
 # The role ARN will look like this:
 # trusted_principal_role_arn = "arn:aws:iam::861276079005:role/redpanda-curl3eo533cmsnt23dv0-redpanda-connect-pipeline"
