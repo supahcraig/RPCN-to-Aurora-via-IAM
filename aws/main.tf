@@ -6,6 +6,12 @@ terraform {
       source  = "hashicorp/aws"
       version = ">= 5.0"
     }
+
+    redpanda = {
+      source  = "redpanda-data/redpanda"
+      version = "~> 1.5.0"
+    }
+
   }
 }
 
@@ -14,8 +20,15 @@ provider "aws" {
   profile = var.aws_profile 
 }
 
+provider "redpanda" {
+}
+
 data "aws_availability_zones" "available" {
   state = "available"
+}
+
+data "redpanda_cluster" "byoc" {
+  id = var.redpanda_cluster_id
 }
 
 locals {
@@ -275,6 +288,132 @@ resource "aws_iam_role_policy" "allow_aurora_iam_demo_user_connect_policy" {
 }
 
 
+################
+# Redpanda stuff
+################
+
+resource "redpanda_topic" "topic" {
+  name               = "rpcn_iam_auth_topic_test"
+  partition_count    = 3
+  replication_factor = 3
+  allow_deletion     = "true"
+  cluster_api_url    = data.redpanda_cluster.byoc.cluster_api_url
+}
+
+resource "redpanda_user" "app" {
+  name            = var.rp_sasl_user
+  password        = var.rp_sasl_password
+  mechanism       = "scram-sha-256"
+  cluster_api_url = data.redpanda_cluster.byoc.cluster_api_url
+
+  # Optional, but commonly set to avoid “dangling state” issues if the cluster is unreachable
+  allow_deletion = true
+}
+
+resource "redpanda_acl" "topic_write" {
+  cluster_api_url = data.redpanda_cluster.byoc.cluster_api_url
+
+  principal          = "User:${var.rp_sasl_user}"
+  host               = "*"
+  resource_type      = "TOPIC"
+  resource_name      = redpanda_topic.topic.name
+  resource_pattern_type = "LITERAL"
+
+  operation       = "WRITE"
+  permission_type = "ALLOW"
+}
+
+resource "redpanda_acl" "topic_describe_for_produce" {
+  cluster_api_url = data.redpanda_cluster.byoc.cluster_api_url
+
+  principal          = "User:${var.rp_sasl_user}"
+  host               = "*"
+  resource_type      = "TOPIC"
+  resource_name      = redpanda_topic.topic.name
+  resource_pattern_type = "LITERAL"
+
+  operation       = "DESCRIBE"
+  permission_type = "ALLOW"
+}
+
+#resource "redpanda_acl" "topic_read" {
+#  cluster_api_url = data.redpanda_cluster.byoc.cluster_api_url
+#
+#  principal          = "User:${var.sasl_username}"
+#  host               = "*"
+#  resource_type      = "topic"
+#  resource_name      = var.topic_name
+#  resource_pattern_type = "literal"
+#
+#  operation  = "read"
+#  permission = "allow"
+#}
+
+#resource "redpanda_acl" "topic_describe_for_consume" {
+#  cluster_api_url = data.redpanda_cluster.byoc.cluster_api_url
+#
+#  principal          = "User:${var.sasl_username}"
+#  host               = "*"
+#  resource_type      = "topic"
+#  resource_name      = var.topic_name
+#  resource_pattern_type = "literal"
+#
+#  operation  = "describe"
+#  permission = "allow"
+#}
+
+#resource "redpanda_acl" "group_read" {
+#  cluster_api_url = data.redpanda_cluster.byoc.cluster_api_url
+#
+#  principal          = "User:${var.sasl_username}"
+#  host               = "*"
+#  resource_type      = "group"
+#  resource_name      = var.consumer_group
+#  resource_pattern_type = "literal"
+#
+#  operation  = "read"
+#  permission = "allow"
+#}
+
+
+locals {
+  pipeline_yaml = templatefile("${path.module}/pipeline.yaml.tmpl", {
+    iam_auth_user        = var.iam_auth_user
+    db_cluster_endpoint  = aws_rds_cluster.aurora.endpoint
+    db_name              = var.db_name
+    aws_region           = var.region
+    iam_db_auth_role_arn = aws_iam_role.allow_connect_to_aurora_iam_demo_user.arn
+    topic                = redpanda_topic.topic.name
+    sasl_username        = var.rp_sasl_user
+    sasl_password        = var.rp_sasl_password
+  })
+}
+
+resource "local_file" "pipeline_yaml" {
+  filename        = "${path.module}/generated_pipeline.yaml"
+  content         = local.pipeline_yaml
+  file_permission = "0600"
+}
+
+resource "redpanda_pipeline" "pipeline" {
+  cluster_api_url = data.redpanda_cluster.byoc.cluster_api_url
+  display_name    = "test x-account IAM auth to RDS"
+  description     = "Redpanda Connect pipeline using IAM authentication to pull CDC from an Aurora instance in a different AWS account."
+  state           = "running"
+  allow_deletion  = "true"
+
+  #config_yaml = file("${path.module}/generated_pipeline.yaml")
+  config_yaml = local_file.pipeline_yaml.content
+
+  resources = {
+    memory_shares = "256Mi"
+    cpu_shares    = "200m"
+  }
+
+  depends_on = [redpanda_topic.topic]
+}
+
+
 output "db_cluster_endpoint" {
   value = aws_rds_cluster.aurora.endpoint
 }
@@ -294,3 +433,12 @@ output "aurora_instance_resource_id" {
 output "iam_db_auth_role_arn" {
   value = aws_iam_role.allow_connect_to_aurora_iam_demo_user.arn
 }
+
+output "rpcn_pipeline_id" {
+  value = redpanda_pipeline.pipeline.id
+}
+
+output "cdc_output_topic" {
+  value = redpanda_topic.topic.name
+}
+

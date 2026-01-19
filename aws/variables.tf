@@ -73,11 +73,6 @@ variable "az_count" {
   default     = 2
 }
 
-#variable "trusted_principal_role_arn" {
-#  type        = string
-#  description = "ARN of the Redpanda IAM role that will be assuming the db auth role"
-#}
-
 variable "redpanda_aws_acct_id" {
   type        = string
   description = "The AWS acct ID where Redpanda is hosted"
@@ -86,4 +81,16 @@ variable "redpanda_aws_acct_id" {
 variable "redpanda_cluster_id" {
   type        = string
   description = "The cluster ID for your Redpanda cluster"
+}
+
+variable "rp_sasl_user" {
+  type        = string
+  description = "SASL user used by RPCN to authenticate to the Redpanda cluster"
+}
+
+
+variable "rp_sasl_password" {
+  type        = string
+  description = "SASL/SCRAM password used by RPCN to authenticate to the Redpanda cluster"
+  sensitive   = true
 }
