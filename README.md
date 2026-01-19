@@ -80,6 +80,42 @@ The Aurora security group will need to allow inbound traffic on port 5432 from R
 
 The necessary Redpanda components will be created as well.
 
+#### Side Quest:  find your NAT Gateway IP
+
+First set a variable for your Redpanda Cluster ID:
+
+```bash
+RP_CLUSTER_ID=curl3eo533cmsnt23dv0
+```
+
+Then call the Repdana Cloud API to fetch the NAT Gateway IP.
+
+```bash
+export AUTH_TOKEN=$(curl -s --request POST \
+  --url 'https://auth.prd.cloud.redpanda.com/oauth/token' \
+  --header 'content-type: application/x-www-form-urlencoded' \
+  --data grant_type=client_credentials \
+  --data client_id="${REDPANDA_CLIENT_ID}" \
+  --data client_secret="${REDPANDA_CLIENT_SECRET}" \
+  --data audience=cloudv2-production.redpanda.cloud | jq -r '.access_token')
+
+curl -s -X GET "https://api.cloud.redpanda.com/v1/clusters/${RP_CLUSTER_ID}" \
+  -H "accept: application/json" \
+  -H "content-type: application/json" \
+  -H "Authorization: Bearer ${AUTH_TOKEN}" | jq .cluster.nat_gateways
+
+```
+
+Should return output like this:
+
+```json
+[
+  "3.139.175.89"
+]
+```
+
+
+
 ### 3.  Run the Aurora terraofrm
 
 The terraform will create the necessary AWS & Redpanda resources 
