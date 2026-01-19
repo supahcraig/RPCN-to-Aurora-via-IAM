@@ -69,7 +69,7 @@ You'll need a Redpanda cluster.   That's it.
 
 ```bash
 git clone .....
-cd RPCN-to-Aurora-via-IAM/aws
+cd RPCN-to-Aurora-via-IAM
 ```
 
 ### 2.  Update tfvars
@@ -82,12 +82,12 @@ The necessary Redpanda components will be created as well.
 
 ### 3.  Run the Aurora terraofrm
 
-The terraform under `aws/` will create the necessary AWS resources 
+The terraform will create the necessary AWS & Redpanda resources 
 * new VPC
 * Aurora Serverless db
 * Redpanda topic
 * Redpanda sasl user/password/ACLs
-* Repdanda Connect pipeline ==> you'll have to start it manually
+* Repdanda Connect pipeline ==> the pipeline will start it automatically
 
 ```bash
 terraform init
@@ -107,7 +107,7 @@ psql -h $(terraform output -raw db_cluster_endpoint) \
 
 ```
 
-It will prompt you for the password, which is postgres (unless you changed it).   Once authenticated, it will execute the contents of `cdc_setup.sql`
+It will prompt you for the password, which is postgres (unless you changed it in tfvars).   Once authenticated, it will execute the contents of `cdc_setup.sql`
 
 ### 5.  Verify the pipeline is running ok
 
