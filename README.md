@@ -109,7 +109,7 @@ It will prompt you for the password, which is postgres (unless you changed it). 
 
 ### 5.  Verify the pipeline is running ok
 
-We can use `rpk` to consume the connect logs topic.  If your cluster has other running pipelines then this topic could be noisy.   But you're looking for only messages specifically for your new pipeline, so we can just grep for those messages.
+We can use `rpk` to consume the connect logs topic.  If your cluster has other running pipelines then this topic could be noisy.   But you're looking for only messages specifically for your new pipeline, so we can just grep for those messages based on the pipeline ID.
 
 ```bash
 rpk topic consume __redpanda.connect.logs --offset start | grep $(terraform output -raw rpcn_pipeline_id)
