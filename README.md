@@ -1,6 +1,6 @@
 # IAM authentication to RDS cross-account
 
-Goal:  Allow for a BYOC cluster using Redpanda Connect's postgres_cdc connector to authenticating to Aurora Postgres Serverless where Aurora lives in a different account from the Redpanda cluster.
+*Goal:*  Allow for a BYOC cluster using Redpanda Connect's postgres_cdc connector to authenticating to Aurora Postgres Serverless where Aurora lives in a different account from the Redpanda cluster.
 
 Repdanda will typically live in a separate account from other customer cloud resources.   So for Redpanda Connect to talk to things like Aurora Postgres in a different account using IAM auth, we have some IAM work to do.   First and foremost, we need an IAM Role that allows for rds-db:connect to the database/user.  This role must live in the same account as the Aurora instance.   This role will be assumed by Redpanda Connect, so it will need a trust policy to allow it to trust the RPCN role, and will allow RPCN to assume the dbconnect role.   It will make more sense when you see it in practice.   That RPCN role will also need a policy that allows it to assume the dbconnect role.   Lastly, we'll need to specify in the pipeline config itself the arn of the dbconnect role so it knows exactly what you want it to do.
 
@@ -32,10 +32,12 @@ On an EC2 instance, it is much easier since the EC2 instance can have an IAM rol
 │ demo-aurora-iam-demo-user                    │
 │ (second STS session, DB account)             │
 │                                              │
-│ Policy: rds-db:connect                       │
+│ Policy allow: rds-db:connect                 │
 │ Resource:                                    │
 │ arn:aws:rds-db:REGION:DB_ACCT:               │
 │   dbuser:cluster-XXXX/iam_demo_user          │
+│ Trust: redpanda-connect-pipeline role        │
+│                                              │
 └───────────────┬──────────────────────────────┘
                 │ aws rds generate-db-auth-token
                 │ (host, port, region, username)
@@ -56,20 +58,38 @@ On an EC2 instance, it is much easier since the EC2 instance can have an IAM rol
 
 # Walkthrough
 
-1.  either copy the terraform files to a local folder, or clone this repo
+## Pre-requisites
 
-2.  Update tfvars with your specifics.
+You'll need a Redpanda cluster.   That's it.
 
-3.  run the terraform
+
+## Steps
+
+### 1.  Clone this repo
+
+```bash
+git clone .....
+cd RPCN-to-Aurora-via-IAM/aws
+```
+
+### Update tfvars
+
+The terraform uses your AWS profile (`~/.aws/config`) to create a new VPC, Aurora Serversless instance, and an IAM role.  It's important that this be in a different AWS account from your Redpanda cluster, which is likely in your default profile via environment variable (`echo $AWS_PROFILE`)
+
+The Aurora security group will need to allow inbound traffic on port 5432 from Redpanda.   In production you would likely use the CIDR range of your Redpanda cluster, but to the sake of simplicity we will create a public Aurora instance and communicate over the public internet.   This means that the traffic to Aurora will be coming from the Redpanda NAT Gateway, the address of which can be found in the Redpanda Cloud UI on the Overview tab.   The Redpanda cluster CIDR is left as an example, but this repo's terraform is not set up to make use of private networking (also would require cross-account VPC peering).
+
+### Run the Aurora terraofrm
+
+The terraform under `aws/` will create the necessary AWS resources (namely, Aurora Serverless db)
 
 ```bash
 terraform init
 terraform apply --auto-approve
 ```
 
-This will create a new VPC in the specified AWS acct, along with a public-facing Aurora instance, the IAM role needed to connect into it, and a security group that will allow connectivity on 5432 from your home IP & also the CIDR of either your Redpanda cluster's NAT Gateway (if accessing your database over the public internet) or the CIDR range of your Redpanda cluster.   If using private networking you will need to peer this new VPC to the redpanda VPC, which is not handled by this bit of terraform. 
+This will create a new VPC in the specified AWS acct, along with a public-facing Aurora instance, the IAM role needed to connect into it, and a security group that will allow connectivity.
 
-4.  Create the necessary database objects & privs
+### Create database user/objects
 
 ```bash
 psql "host=$(terraform output -raw db_cluster_endpoint) \
@@ -77,11 +97,18 @@ psql "host=$(terraform output -raw db_cluster_endpoint) \
   dbname=$(terraform output -raw db_name) \
   user=postgres \
   sslmode=require"
+  
+psql -h $(terraform output -raw db_cluster_endpoint) \
+     -p 5432 \
+     -U $(terraform output -raw db_user) \
+     -d $(terraform output -raw db_name) \
+     -f schema.sql 
+
 ```
 
-It will prompt you for the password, which is postgres (unless you changed it).
+It will prompt you for the password, which is postgres (unless you changed it).   Once authenticated, it will execute the contents of `cdc_setup.sql`
 
-Run the SQL in `cdc_setup.sql` which will create several objects & grant privs corresponding to the `iam_demo_user` (again, unless you changed it).
+
 
 5.  Create the RPCN pipeline
 
@@ -179,6 +206,7 @@ Note:  the terraform in this repo will not generate this policy, nor will it att
     ]
 }
 ```
+
 
 
 
