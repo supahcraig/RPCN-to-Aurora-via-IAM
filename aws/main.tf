@@ -321,6 +321,7 @@ resource "redpanda_acl" "topic_write" {
 
   operation       = "WRITE"
   permission_type = "ALLOW"
+  allow_deletion  = true
 }
 
 resource "redpanda_acl" "topic_describe_for_produce" {
@@ -334,47 +335,8 @@ resource "redpanda_acl" "topic_describe_for_produce" {
 
   operation       = "DESCRIBE"
   permission_type = "ALLOW"
+  allow_deletion  = true
 }
-
-#resource "redpanda_acl" "topic_read" {
-#  cluster_api_url = data.redpanda_cluster.byoc.cluster_api_url
-#
-#  principal          = "User:${var.sasl_username}"
-#  host               = "*"
-#  resource_type      = "topic"
-#  resource_name      = var.topic_name
-#  resource_pattern_type = "literal"
-#
-#  operation  = "read"
-#  permission = "allow"
-#}
-
-#resource "redpanda_acl" "topic_describe_for_consume" {
-#  cluster_api_url = data.redpanda_cluster.byoc.cluster_api_url
-#
-#  principal          = "User:${var.sasl_username}"
-#  host               = "*"
-#  resource_type      = "topic"
-#  resource_name      = var.topic_name
-#  resource_pattern_type = "literal"
-#
-#  operation  = "describe"
-#  permission = "allow"
-#}
-
-#resource "redpanda_acl" "group_read" {
-#  cluster_api_url = data.redpanda_cluster.byoc.cluster_api_url
-#
-#  principal          = "User:${var.sasl_username}"
-#  host               = "*"
-#  resource_type      = "group"
-#  resource_name      = var.consumer_group
-#  resource_pattern_type = "literal"
-#
-#  operation  = "read"
-#  permission = "allow"
-#}
-
 
 locals {
   pipeline_yaml = templatefile("${path.module}/pipeline.yaml.tmpl", {
