@@ -213,8 +213,9 @@ The dbconnect role will be assumed by RPCN, so we have to allow it to trust the 
 #### Tagging (important!)
 
 The RPCN role specifies a condition, which requires that the dbconnect role have a specific tag:
-key: `redpanda_scope_redpanda_connect"`
-value: `true`
+| Key | Value |
+|:---|:---| 
+|`redpanda_scope_redpanda_connect`| `true` |
 
 If you do not include this tag, the role assumption will fail.
 
