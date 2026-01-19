@@ -82,7 +82,7 @@ The necessary Redpanda components will be created as well.
 
 <details>
 <summary> 
-#### Side Quest:  find your NAT Gateway IP
+Side Quest:  find your NAT Gateway IP
 </summary>
 
 First set a variable for your Redpanda Cluster ID:
