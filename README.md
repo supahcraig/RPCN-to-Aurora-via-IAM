@@ -169,7 +169,7 @@ This section describes the what & why for the IAM roles needed to make this work
 In the account that owns the database, you will need an IAM role with permissions to allow it to connect to the database, but the resource for this role isn't the _database_, it's actually a user within the database.   You can find part of this in the console for your Regional Cluster (not the writer instance) under Configuration > Resource ID.   It will look like `cluster-X4BNAQDEZCAUGHTITYK7B6YCAQ`.   You will also specify a database user as part of the resource.  It doesn't have to be created _yet_, but it will be the user RPCN connects as.  Again, this role must live in the same AWS account as where Aurora lives.
 
 
-Name it `rpcn-demo-xaccount-rds-connect-role`
+Name the IAM role `demo-allow_connect_to_aurora-iam-demo-user`
 
 ```json
 {
@@ -177,7 +177,7 @@ Name it `rpcn-demo-xaccount-rds-connect-role`
         {
             "Action": "rds-db:connect",
             "Effect": "Allow",
-            "Resource": "arn:aws:rds-db:us-east-2:<Aurora PG AWS Acct ID>:dbuser:cluster-X4BNAQDEZCAUGHTITYK7B6YCAQ/iam_demo_user"
+            "Resource": "arn:aws:rds-db:us-east-2:<Aurora PG AWS Acct ID>:dbuser:<Aurora cluster Endpoint>/iam_demo_user"
         }
     ],
     "Version": "2012-10-17"
@@ -202,7 +202,7 @@ The dbconnect role will be assumed by RPCN, so we have to allow it to trust the 
         {
             "Effect": "Allow",
             "Principal": {
-                "AWS": "arn:aws:iam::<Redpanda AWS Acct ID>:role/redpanda-curl3eo533cmsnt23dv0-redpanda-connect-pipeline"
+                "AWS": "arn:aws:iam::<Redpanda AWS Acct ID>:role/redpanda-<Redpanda Cluster ID>-redpanda-connect-pipeline"
             },
             "Action": "sts:AssumeRole"
         }
@@ -222,9 +222,9 @@ If you do not include this tag, the role assumption will fail.
 
 ### Redpanda Connect Role
 
-As mentioned above, this role is created when your Redpanda cluster is created.   If your cluster had cluster ID `curl3eo533cmsnt23dv0` then your role would be named `redpanda-curl3eo533cmsnt23dv0-redpanda-connect-pipeline`.  It is vital that we don't change the policies attached to this role.   Out of the box there is a policy that allows it to read AWS secrets, and a trust policy that involves IRSA, OIDC, federated identities...it complex.  The good news is you don't need to worry about this.   There may also be another policy in this role (but there might not be, depends on how the cloud team ends up implementing this), but if we want to be explicit, we can create a new policy for this role.   It is important to understand that if we change the existing policies those changes will be reverted by the Redpanda reconciliation process.   But _adding a policy_ won't be subject to that.   So we will need to create a policy that allows this role to assume the dbconnect role.   It should look very much just like this, and it should be attached to the RPCN role.
+As mentioned above, this role is created when your Redpanda cluster is created.   If your cluster had cluster ID `curl3eo533cmsnt23dv0` then your role would be named `redpanda-curl3eo533cmsnt23dv0-redpanda-connect-pipeline`.  It is vital that we don't change the existing policies attached to this role.   Out of the box there is a policy that allows it to read AWS secrets, and a trust policy that involves IRSA, OIDC, federated identities...it complex.  The good news is you don't need to worry about this.   There _may_ also be another policy in this role (but there might not be, depends on how the cloud team ends up implementing this), but if we want to be explicit, we can create a new policy for this role.   It is important to understand that if we change the existing policies those changes will be reverted by the Redpanda reconciliation process.   But _adding a policy_ won't be subject to that.   So we will need to create a policy that allows this role to assume the dbconnect role.   It should look very much just like this, and it should be attached to the RPCN role.
 
-Note:  the terraform in this repo will not generate this policy, nor will it attach it to the RPCN role.  It is left as an exercise to the reader (for now).
+Note:  the terraform in this repo will not generate this policy, nor will it attach it to the RPCN role.  It is left as an exercise to the reader (for now).  The actual resource will be the ARN of the "db connect" role owned by the Aurora account.
 
 ```json
 {
@@ -236,7 +236,7 @@ Note:  the terraform in this repo will not generate this policy, nor will it att
                 "sts:AssumeRole"
             ],
             "Resource": [
-                "arn:aws:iam::<Aurora PG AWS Acct ID>:role/rpcn-demo-xaccount-rds-connect-role"
+                "arn:aws:iam::<Aurora PG AWS Acct ID>:role/demo-allow_connect_to_aurora-iam-demo-user"
             ],
             "Condition": {
                 "StringEquals": {
