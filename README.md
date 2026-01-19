@@ -94,6 +94,8 @@ terraform init
 terraform apply --auto-approve
 ```
 
+The RDS spin up is the longest step by far, which should take 7ish minutes.
+
 ### 4.  Create database user/objects
 
 ```bash
@@ -115,11 +117,15 @@ We can use `rpk` to consume the connect logs topic.  If your cluster has other r
 rpk topic consume __redpanda.connect.logs --offset start | grep $(terraform output -raw rpcn_pipeline_id)
 ```
 
-Really we're looking for ERROR messages, but often times seeing the whole stream is helpful in troubleshooting.
+Really we're looking for ERROR messages, but often times seeing the whole stream is helpful in troubleshooting. 
+
+If you see the `postgres_cdc` input go active, then you're probalby in good shape.
 
 ```bash
 rpk topic consume __redpanda.connect.logs --offset start | grep $(terraform output -raw rpcn_pipeline_id) | grep 'ERROR'
 ```
+
+You may see a few error messages as the pipeline is becoming active.  If there is a steady flow of errors then you will need to troubleshoot.  But pretty quickly the logs topic will become rather idle, indicating that we can safely move to the next step.
 
 If you see the `postgres_cdc` input go active, then you're probalby in good shape.
 
