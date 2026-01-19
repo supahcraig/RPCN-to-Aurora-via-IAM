@@ -80,7 +80,10 @@ The Aurora security group will need to allow inbound traffic on port 5432 from R
 
 The necessary Redpanda components will be created as well.
 
+<details>
+<summary> 
 #### Side Quest:  find your NAT Gateway IP
+</summary>
 
 First set a variable for your Redpanda Cluster ID:
 
@@ -113,7 +116,7 @@ Should return output like this:
   "3.139.175.89"
 ]
 ```
-
+</details>
 
 
 ### 3.  Run the Aurora terraofrm
