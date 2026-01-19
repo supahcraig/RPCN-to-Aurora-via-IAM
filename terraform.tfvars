@@ -2,7 +2,7 @@ region       = "us-east-2"
 name_prefix  = "demo"
 aws_profile  = "se_demo"  # the name of the aws profile where you want to deploy aurora
 
-vpc_cidr = "10.201.0.0/16"  # CIDR range of the new VPC where RDS will deploy
+vpc_cidr = "10.201.0.0/24"  # CIDR range of the new VPC where RDS will deploy
 
 # Allowing access to RDS:
    # if your database is private (most likely) you would first peer the networks, and then add a SG rule to allow traffic from the Redpanda CIDR

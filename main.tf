@@ -34,10 +34,10 @@ data "redpanda_cluster" "byoc" {
 locals {
   azs = slice(data.aws_availability_zones.available.names, 0, var.az_count)
 
-  # Two /24 public subnets carved from the /16
+  # Two /26 public subnets carved from the /24
   public_subnet_cidrs = [
-    cidrsubnet(var.vpc_cidr, 8, 0),
-    cidrsubnet(var.vpc_cidr, 8, 1),
+    cidrsubnet(var.vpc_cidr, 2, 0),
+    cidrsubnet(var.vpc_cidr, 2, 1),
   ]
 }
 

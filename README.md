@@ -114,7 +114,7 @@ It will prompt you for the password, which is postgres (unless you changed it in
 We can use `rpk` to consume the connect logs topic.  If your cluster has other running pipelines then this topic could be noisy.   But you're looking for only messages specifically for your new pipeline, so we can just grep for those messages based on the pipeline ID.
 
 ```bash
-rpk topic consume __redpanda.connect.logs --offset start | grep $(terraform output -raw rpcn_pipeline_id)
+rpk topic consume __redpanda.connect.logs --offset end | grep $(terraform output -raw rpcn_pipeline_id)
 ```
 
 Really we're looking for ERROR messages, but often times seeing the whole stream is helpful in troubleshooting. 
@@ -122,7 +122,7 @@ Really we're looking for ERROR messages, but often times seeing the whole stream
 If you see the `postgres_cdc` input go active, then you're probalby in good shape.
 
 ```bash
-rpk topic consume __redpanda.connect.logs --offset start | grep $(terraform output -raw rpcn_pipeline_id) | grep 'ERROR'
+rpk topic consume __redpanda.connect.logs --offset end | grep $(terraform output -raw rpcn_pipeline_id) | grep 'ERROR'
 ```
 
 You may see a few error messages as the pipeline is becoming active.  If there is a steady flow of errors then you will need to troubleshoot.  But pretty quickly the logs topic will become rather idle, indicating that we can safely move to the next step.
