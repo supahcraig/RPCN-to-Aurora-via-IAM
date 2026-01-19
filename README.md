@@ -68,7 +68,7 @@ You'll need a Redpanda cluster.   That's it.
 ### 1.  Clone this repo
 
 ```bash
-git clone .....
+git clone https://github.com/supahcraig/RPCN-to-Aurora-via-IAM.git
 cd RPCN-to-Aurora-via-IAM
 ```
 
