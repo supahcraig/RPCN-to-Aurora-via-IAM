@@ -29,7 +29,7 @@ On an EC2 instance, it is much easier since the EC2 instance can have an IAM rol
                 ▼
 ┌──────────────────────────────────────────────┐
 │ DB-account IAM Role                          │
-│ demo-aurora-iam-demo-user                    │
+│ demo-allow_connect_to_aurora-iam-demo-user   │
 │ (second STS session, DB account)             │
 │                                              │
 │ Policy allow: rds-db:connect                 │
@@ -72,50 +72,84 @@ git clone .....
 cd RPCN-to-Aurora-via-IAM/aws
 ```
 
-### Update tfvars
+### 2.  Update tfvars
 
 The terraform uses your AWS profile (`~/.aws/config`) to create a new VPC, Aurora Serversless instance, and an IAM role.  It's important that this be in a different AWS account from your Redpanda cluster, which is likely in your default profile via environment variable (`echo $AWS_PROFILE`)
 
 The Aurora security group will need to allow inbound traffic on port 5432 from Redpanda.   In production you would likely use the CIDR range of your Redpanda cluster, but to the sake of simplicity we will create a public Aurora instance and communicate over the public internet.   This means that the traffic to Aurora will be coming from the Redpanda NAT Gateway, the address of which can be found in the Redpanda Cloud UI on the Overview tab.   The Redpanda cluster CIDR is left as an example, but this repo's terraform is not set up to make use of private networking (also would require cross-account VPC peering).
 
-### Run the Aurora terraofrm
+The necessary Redpanda components will be created as well.
 
-The terraform under `aws/` will create the necessary AWS resources (namely, Aurora Serverless db)
+### 3.  Run the Aurora terraofrm
+
+The terraform under `aws/` will create the necessary AWS resources 
+* new VPC
+* Aurora Serverless db
+* Redpanda topic
+* Redpanda sasl user/password/ACLs
+* Repdanda Connect pipeline ==> you'll have to start it manually
 
 ```bash
 terraform init
 terraform apply --auto-approve
 ```
 
-This will create a new VPC in the specified AWS acct, along with a public-facing Aurora instance, the IAM role needed to connect into it, and a security group that will allow connectivity.
-
-### Create database user/objects
+### 4.  Create database user/objects
 
 ```bash
-psql "host=$(terraform output -raw db_cluster_endpoint) \
-  port=5432 \
-  dbname=$(terraform output -raw db_name) \
-  user=postgres \
-  sslmode=require"
-  
 psql -h $(terraform output -raw db_cluster_endpoint) \
      -p 5432 \
-     -U $(terraform output -raw db_user) \
+     -U $(terraform output -raw db_username) \
      -d $(terraform output -raw db_name) \
-     -f schema.sql 
+     -f cdc_setup.sql 
 
 ```
 
 It will prompt you for the password, which is postgres (unless you changed it).   Once authenticated, it will execute the contents of `cdc_setup.sql`
 
+### 5.  Verify the pipeline is running ok
+
+We can use `rpk` to consume the connect logs topic.  If your cluster has other running pipelines then this topic could be noisy.   But you're looking for only messages specifically for your new pipeline, so we can just grep for those messages.
+
+```bash
+rpk topic consume __redpanda.connect.logs --offset start | grep $(terraform output -raw rpcn_pipeline_id)
+```
+
+Really we're looking for ERROR messages, but often times seeing the whole stream is helpful in troubleshooting.
+
+```bash
+rpk topic consume __redpanda.connect.logs --offset start | grep $(terraform output -raw rpcn_pipeline_id) | grep 'ERROR'
+```
+
+If you see the `postgres_cdc` input go active, then you're probalby in good shape.
 
 
-5.  Create the RPCN pipeline
+### 6.  Insert rows into the table 
 
-6.  Insert a row into the table created in step 4, and check the topic to see that insert replicate into Redpanda.
+It is probably adviseable to first validate that your pipeline is running error-free
 
+```bash
+psql -h $(terraform output -raw db_cluster_endpoint) \
+     -p 5432 \
+     -U $(terraform output -raw db_username) \
+     -d $(terraform output -raw db_name) \
+     -f insert_data.sql 
 
+```
 
+### 7.  Consume the topic
+
+```bash
+rpk topic consume $(terraform output -raw cdc_output_topic) --offset start
+```
+
+You should see a stream of messages corresponding to the inserts you ran into the database in step #6.   "Advanced" users might have one window consuming the topic while a different window runs the database inserts so you can see the stream flow in real time.
+
+### 8.  Tear it down
+
+```
+terraform destroy --auto-approve
+```
 
 ---
 ## IAM roles
@@ -206,6 +240,7 @@ Note:  the terraform in this repo will not generate this policy, nor will it att
     ]
 }
 ```
+
 
 
 

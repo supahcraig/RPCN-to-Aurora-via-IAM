@@ -20,3 +20,5 @@ override.tf.json
 .terraformrc
 terraform.rc
 
+# Generated rpcn pipeline yaml
+generated_pipeline.yaml
