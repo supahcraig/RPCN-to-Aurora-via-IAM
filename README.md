@@ -2,7 +2,7 @@
 
 **Goal:**  Allow for a BYOC cluster using Redpanda Connect's postgres_cdc connector to authenticate to Aurora Postgres Serverless where Aurora lives in a different account from the Redpanda cluster.
 
-Repdanda will typically live in a separate account from other customer cloud resources.   So for Redpanda Connect to talk to things like Aurora Postgres in a different account using IAM auth, we have some IAM work to do.   First and foremost, we need an IAM Role that allows for rds-db:connect to the database/user.  This role must live in the same account as the Aurora instance.   This role will be assumed by Redpanda Connect, so it will need a trust policy to allow it to trust the RPCN role, and will allow RPCN to assume the dbconnect role.   It will make more sense when you see it in practice.   That RPCN role will also need a policy that allows it to assume the dbconnect role.   Lastly, we'll need to specify in the pipeline config itself the arn of the dbconnect role so it knows exactly what you want it to do.
+Repdanda will typically live in a separate account from other customer cloud resources.   So for Redpanda Connect to talk to things like Aurora Postgres in a different account using IAM auth, we have some IAM work to do.   First and foremost, we need an IAM Role that allows for rds-db:connect to the database/user.  This role must live in the same account as the Aurora instance.   This role will be assumed by Redpanda Connect, so it will need a trust policy to allow it to trust the RPCN role, and will allow RPCN to assume the dbconnect role.   It will make more sense when you see it in practice.   That RPCN role will also need a policy that allows it to assume the dbconnect role, which _may_ be provided by Redpanda (depending on the specific Redpanda release).   Lastly, we'll need to specify in the pipeline config itself the arn of the dbconnect role so it knows exactly what you want it to do.
 
 On an EC2 instance, it is much easier since the EC2 instance can have an IAM role attached, but since BYOC & RPCN on BYOC runs in EKS, it is more complicated, involving IRSA among other way in the weeds details.
 
@@ -60,7 +60,7 @@ On an EC2 instance, it is much easier since the EC2 instance can have an IAM rol
 
 ## Pre-requisites
 
-You'll need a Redpanda cluster.   That's it.
+You'll need a Redpanda BYOC cluster.   That's it.
 
 
 ## Steps
@@ -119,7 +119,7 @@ Should return output like this:
 </details>
 
 
-### 3.  Run the Aurora terraofrm
+### 3.  Run the Aurora/Redpanda terraofrm
 
 The terraform will create the necessary AWS & Redpanda resources 
 * new VPC
@@ -287,8 +287,29 @@ Note:  the terraform in this repo will not generate this policy, nor will it att
 }
 ```
 
+---
 
+# Troubleshooting
 
+## Missing cross-account policy
+
+If you're failing to connect to postgres_cdc, it is likely that the Redpanda Connect pipeline role is missing the policy to allow it to assume your db-connect role.   You'll see many instances of error messages similar to this in the `__redpanda.connect.logs` topic.
+
+```json
+{
+    "instance_id": "d5nqpls9m4lc73ejlu80",
+    "label": "postgres_cdc",
+    "level": "ERROR",
+    "message": "Failed to connect to postgres_cdc: unable to generate IAM auth token: assuming role based on configured roles: verifying role assumption for 'arn:aws:iam::211125444193:role/demo-allow_connect_to_aurora-iam-demo-user': operation error STS: GetCallerIdentity, get identity: get credentials: failed to refresh cached credentials, operation error STS: AssumeRole, https response error StatusCode: 403, RequestID: de0401b8-1a52-4cdc-8bb7-88f24dd36d6c, api error AccessDenied: User: arn:aws:sts::861276079005:assumed-role/redpanda-curl3eo533cmsnt23dv0-redpanda-connect-pipeline/1768926423691540220 is not authorized to perform: sts:AssumeRole on resource: arn:aws:iam::211125444193:role/demo-allow_connect_to_aurora-iam-demo-user",
+    "path": "root.input",
+    "pipeline_id": "d5nfcb0objac738nhf90",
+    "time": "2026-01-20T16:27:06.316621814Z"
+}
+```
+
+The fix is to add an inline policy to your Redpanda Connect pipeline IAM role (`repdanda-<your redpanda cluster ID>-redpanda-connect-pipeline`), which lives in your Redpanda AWS account.   Terraform generated an IAM policy artifact called `generated_x-account-rds-iam-policy.json` which you will need to attach as an inline policy to that role.   Once you add this policy the error should clear on its own.   
+
+The template for this policy is given in the above section, under "Redpanda Connect Role".
 
 
 
