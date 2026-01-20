@@ -20,5 +20,6 @@ override.tf.json
 .terraformrc
 terraform.rc
 
-# Generated rpcn pipeline yaml
+# Generated content
 generated_pipeline.yaml
+generated_x-account-rds-iam-policy.json

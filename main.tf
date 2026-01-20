@@ -375,6 +375,17 @@ resource "redpanda_pipeline" "pipeline" {
   depends_on = [redpanda_topic.topic]
 }
 
+locals {
+  x_account_policy_json = templatefile("${path.module}/x-account-rds-iam-policy.json.tmpl", {
+    db_connect_role_arn = aws_iam_role.allow_connect_to_aurora_iam_demo_user.arn
+  })
+}
+
+resource "local_file" "iam_policy_json" {
+  filename        = "${path.module}/generated_x-account-rds-iam-policy.json"
+  content         = local.x_account_policy_json
+  file_permission = "0600"
+}
 
 output "db_cluster_endpoint" {
   value = aws_rds_cluster.aurora.endpoint
