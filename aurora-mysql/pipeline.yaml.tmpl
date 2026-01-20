@@ -1,0 +1,75 @@
+logger:
+  level: DEBUG
+
+input:
+  label: "mysql_cdc"
+  mysql_cdc:
+    dsn: "${iam_auth_user}:@tcp(${db_cluster_endpoint}:3306)/${db_name}?tls=true"
+    stream_snapshot: false
+    snapshot_max_batch_size: 1
+    checkpoint_limit: 1
+    checkpoint_cache: mysql_cache     
+
+    tables:
+      - "iamuser_test"
+
+    tls:
+      # for a quick dev test – *don’t* leave this in production:
+      skip_cert_verify: true
+
+    aws:
+      enabled: true
+      region: "${aws_region}"
+
+      endpoint: "${db_cluster_endpoint}:3306"
+      roles:
+        - role: "${iam_db_auth_role_arn}"
+
+cache_resources:
+ - label: "mysql_cache"
+   memory:
+     default_ttl: 5m
+     compaction_interval: 60s
+     init_values: {}
+
+pipeline:
+  processors:
+    - mapping: |
+        # Generic RPCN CDC envelope (works for any table)
+        root = {
+          "schema": "rpcn.cdc.v1",
+          "source": {
+            "connector": "mysql_cdc",
+            "engine": "mysql",
+            "table": meta("table")
+          },
+          "op": meta("operation"),
+          "position": {
+            "type": "binlog",
+            "value": meta("binlog_position")
+          },
+          # Keep the row as an untyped map of columns (schema is implicit)
+          "row": this,
+          # Ingestion time (your pipeline clock, not DB clock)
+          "ingested_at": now().format_timestamp("2006-01-02T15:04:05.000Z07:00")
+        }
+
+        # Optional: if an "id" column exists, promote it to a top-level key
+        if this.exists("id") {
+          root.key = { "id": this.id }
+        }
+
+output:
+  kafka_franz:
+    seed_brokers:
+      - $${REDPANDA_BROKERS}
+
+    topic: mysql.iam_auth_topic_test
+
+    tls:
+      enabled: true
+
+    sasl:
+      - mechanism: SCRAM-SHA-256
+        username: ${sasl_username}
+        password: ${sasl_password}

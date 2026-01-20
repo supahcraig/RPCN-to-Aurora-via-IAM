@@ -134,6 +134,17 @@ The terraform will create the necessary AWS & Redpanda resources
 * Redpanda sasl user/password/ACLs
 * Repdanda Connect pipeline ==> the pipeline will start it automatically
 
+<details>
+<summary>Aurora Postgres</summary>
+Postgres is currently run out of the project root.
+</details>
+<details>
+<summary>Aurora MySQL</summary>
+```bash
+cd aurora-mysql
+```
+</details>
+
 ```bash
 terraform init
 terraform apply --auto-approve
@@ -143,16 +154,30 @@ The RDS spin up is the longest step by far, which should take 7ish minutes.
 
 ### 4.  Create database user/objects
 
+<details>
+<summary>Aurora Postgres</summary>
 ```bash
 psql -h $(terraform output -raw db_cluster_endpoint) \
      -p 5432 \
      -U $(terraform output -raw db_username) \
      -d $(terraform output -raw db_name) \
-     -f cdc_setup.sql 
+     -f postgres_cdc_setup.sql 
 
 ```
 
 It will prompt you for the password, which is postgres (unless you changed it in tfvars).   Once authenticated, it will execute the contents of `cdc_setup.sql`
+</details>
+
+<details>
+<summary>Aurora MySQL</summary>
+```bash
+mysql -h $(terraform output -raw db_cluster_endpoint) \
+-P 3306 \
+-u $(terraform output -raw db_username) \
+-p $(terraform output -raw db_name) < mysql_cdc_setup.sql
+
+```
+</details>
 
 ### 5.  Verify the pipeline is running ok
 
@@ -177,16 +202,29 @@ If you see the `postgres_cdc` input go active, then you're probalby in good shap
 
 ### 6.  Insert rows into the table 
 
-It is probably adviseable to first validate that your pipeline is running error-free
-
+<details>
+<summary>Aurora Postgres</summary>
+<details>
 ```bash
 psql -h $(terraform output -raw db_cluster_endpoint) \
      -p 5432 \
      -U $(terraform output -raw db_username) \
      -d $(terraform output -raw db_name) \
-     -f insert_data.sql 
+     -f postgres_insert.sql 
 
 ```
+</details>
+
+<details>
+<summary>Aurora MySQL</summary>
+```bash
+mysql -h $(terraform output -raw db_cluster_endpoint) \
+-P 3306 \
+-u $(terraform output -raw db_username) \
+-p $(terraform output -raw db_name) < mysql_insert.sql
+
+```
+</details>
 
 ### 7.  Consume the topic
 
