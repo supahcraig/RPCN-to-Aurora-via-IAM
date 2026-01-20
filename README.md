@@ -2,6 +2,12 @@
 
 **Goal:**  Allow for a BYOC cluster using Redpanda Connect's postgres_cdc connector to authenticate to Aurora Postgres Serverless where Aurora lives in a different account from the Redpanda cluster.
 
+**Estimated time needed:** 10 minutes, ~7 of which is waiting for Aurora to come up.
+
+**Pre-requisites:** You'll need a Redpanda BYOC cluster.   That's it.
+
+---
+
 Repdanda will typically live in a separate account from other customer cloud resources.   So for Redpanda Connect to talk to things like Aurora Postgres in a different account using IAM auth, we have some IAM work to do.   First and foremost, we need an IAM Role that allows for rds-db:connect to the database/user.  This role must live in the same account as the Aurora instance.   This role will be assumed by Redpanda Connect, so it will need a trust policy to allow it to trust the RPCN role, and will allow RPCN to assume the dbconnect role.   It will make more sense when you see it in practice.   That RPCN role will also need a policy that allows it to assume the dbconnect role, which _may_ be provided by Redpanda (depending on the specific Redpanda release).   Lastly, we'll need to specify in the pipeline config itself the arn of the dbconnect role so it knows exactly what you want it to do.
 
 On an EC2 instance, it is much easier since the EC2 instance can have an IAM role attached, but since BYOC & RPCN on BYOC runs in EKS, it is more complicated, involving IRSA among other way in the weeds details.
