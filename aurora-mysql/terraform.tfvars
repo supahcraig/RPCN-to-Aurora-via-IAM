@@ -14,7 +14,7 @@ redpanda_cidr = "3.139.175.89/32" # example for allowing public access via Redpa
 redpanda_aws_acct_id     = "861276079005"            # the AWS account ID where your repdanda cluster is deployed
 redpanda_cluster_id      = "curl3eo533cmsnt23dv0"    # this will be YOUR cluster ID
 
-rp_sasl_user      = "demo_iam_sasl_user"
+rp_sasl_user      = "demo_mysql_iam_sasl_user"
 rp_sasl_password  = "demo_iam_sasl_password"
 
 

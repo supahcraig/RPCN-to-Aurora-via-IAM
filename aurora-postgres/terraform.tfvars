@@ -1,5 +1,5 @@
 region       = "us-east-2"
-name_prefix  = "demo"
+name_prefix  = "demo-postgres"
 aws_profile  = "se_demo"  # the name of the aws profile where you want to deploy aurora
 
 vpc_cidr = "10.201.0.0/24"  # CIDR range of the new VPC where RDS will deploy
@@ -14,7 +14,7 @@ redpanda_cidr = "3.139.175.89/32" # example for allowing public access via Redpa
 redpanda_aws_acct_id     = "861276079005"            # the AWS account ID where your repdanda cluster is deployed
 redpanda_cluster_id      = "curl3eo533cmsnt23dv0"    # this will be YOUR cluster ID
 
-rp_sasl_user      = "demo_iam_sasl_user"
+rp_sasl_user      = "demo_postgres_iam_sasl_user"
 rp_sasl_password  = "demo_iam_sasl_password"
 
 

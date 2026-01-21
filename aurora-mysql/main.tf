@@ -286,7 +286,7 @@ resource "aws_iam_role_policy" "allow_aurora_iam_demo_user_connect_policy" {
 ################
 
 resource "redpanda_topic" "topic" {
-  name               = "mysql.iam_auth_topic_test"
+  name               = "${var.name_prefix}.iam_auth_topic_test"
   partition_count    = 3
   replication_factor = 3
   allow_deletion     = "true"
@@ -368,7 +368,7 @@ resource "redpanda_pipeline" "pipeline" {
 }
 
 locals {
-  x_account_policy_json = templatefile("${path.module}/x-account-rds-iam-policy.json.tmpl", {
+  x_account_policy_json = templatefile("${path.module}/../x-account-rds-iam-policy.json.tmpl", {
     db_connect_role_arn = aws_iam_role.allow_connect_to_aurora_iam_demo_user.arn
   })
 }

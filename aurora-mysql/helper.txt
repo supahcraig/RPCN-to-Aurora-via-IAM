@@ -1,0 +1,10 @@
+mysql -h $(terraform output -raw db_cluster_endpoint) \
+-P 3306 \
+-u admin \
+-p demo_db
+
+
+mysql -h $(terraform output -raw db_cluster_endpoint) \
+-P 3306 \
+-u admin \
+-p demo_db < mysql_setup.sql

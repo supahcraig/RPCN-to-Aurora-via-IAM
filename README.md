@@ -138,8 +138,10 @@ The terraform will create the necessary AWS & Redpanda resources
 <summary>Aurora Postgres</summary>
 Postgres is currently run out of the project root.
 </details>
+
 <details>
 <summary>Aurora MySQL</summary>
+
 ```bash
 cd aurora-mysql
 ```
@@ -156,6 +158,7 @@ The RDS spin up is the longest step by far, which should take 7ish minutes.
 
 <details>
 <summary>Aurora Postgres</summary>
+
 ```bash
 psql -h $(terraform output -raw db_cluster_endpoint) \
      -p 5432 \
