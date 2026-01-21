@@ -173,6 +173,7 @@ It will prompt you for the password, which is postgres (unless you changed it in
 
 <details>
 <summary>Aurora MySQL</summary>
+
 ```bash
 mysql -h $(terraform output -raw db_cluster_endpoint) \
 -P 3306 \
@@ -206,8 +207,11 @@ If you see the `postgres_cdc` input go active, then you're probalby in good shap
 ### 6.  Insert rows into the table 
 
 <details>
-<summary>Aurora Postgres</summary>
-<details>
+
+  <summary>
+    Aurora Postgres
+  </summary>
+
 ```bash
 psql -h $(terraform output -raw db_cluster_endpoint) \
      -p 5432 \
@@ -216,18 +220,26 @@ psql -h $(terraform output -raw db_cluster_endpoint) \
      -f postgres_insert.sql 
 
 ```
+
 </details>
+
 
 <details>
-<summary>Aurora MySQL</summary>
+
+  <summary>
+    Aurora MySQL
+  </summary>
+
 ```bash
 mysql -h $(terraform output -raw db_cluster_endpoint) \
--P 3306 \
--u $(terraform output -raw db_username) \
--p $(terraform output -raw db_name) < mysql_insert.sql
-
+    -P 3306 \
+    -u $(terraform output -raw db_username) \
+    -p $(terraform output -raw db_name) < mysql_insert.sql
 ```
+
 </details>
+
+
 
 ### 7.  Consume the topic
 
