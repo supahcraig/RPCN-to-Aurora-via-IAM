@@ -1,6 +1,6 @@
 # IAM authentication to RDS cross-account
 
-**Goal:**  Allow for a BYOC cluster using Redpanda Connect's postgres_cdc connector to authenticate to Aurora Postgres Serverless where Aurora lives in a different account from the Redpanda cluster.
+**Goal:**  Allow for a BYOC cluster using Redpanda Connect's postgres_cdc/mysql_cdc connector to authenticate to Aurora PG/MySQL where Aurora lives in a different account from the Redpanda cluster.
 
 **Estimated time needed:** 10 minutes, ~7 of which is waiting for Aurora to come up.
 
@@ -8,7 +8,7 @@
 
 ---
 
-Repdanda will typically live in a separate account from other customer cloud resources.   So for Redpanda Connect to talk to things like Aurora Postgres in a different account using IAM auth, we have some IAM work to do.   First and foremost, we need an IAM Role that allows for rds-db:connect to the database/user.  This role must live in the same account as the Aurora instance.   This role will be assumed by Redpanda Connect, so it will need a trust policy to allow it to trust the RPCN role, and will allow RPCN to assume the dbconnect role.   It will make more sense when you see it in practice.   That RPCN role will also need a policy that allows it to assume the dbconnect role, which _may_ be provided by Redpanda (depending on the specific Redpanda release).   Lastly, we'll need to specify in the pipeline config itself the arn of the dbconnect role so it knows exactly what you want it to do.
+Repdanda will typically live in a separate account from other customer cloud resources.   So for Redpanda Connect to talk to things like Aurora in a different account using IAM auth, we have some IAM work to do.   First and foremost, we need an IAM Role that allows for rds-db:connect to the database/user.  This role must live in the same account as the Aurora instance.   This role will be assumed by Redpanda Connect, so it will need a trust policy to allow it to trust the RPCN role, and will allow RPCN to assume the dbconnect role.   It will make more sense when you see it in practice.   That RPCN role will also need a policy that allows it to assume the dbconnect role, which _may_ be provided by Redpanda (depending on the specific Redpanda release).   Lastly, we'll need to specify in the pipeline config itself the arn of the dbconnect role so it knows exactly what you want it to do.
 
 On an EC2 instance, it is much easier since the EC2 instance can have an IAM role attached, but since BYOC & RPCN on BYOC runs in EKS, it is more complicated, involving IRSA among other way in the weeds details.
 
@@ -49,7 +49,7 @@ On an EC2 instance, it is much easier since the EC2 instance can have an IAM rol
                 │ (host, port, region, username)
                 ▼
 ┌──────────────────────────────────────────────┐
-│ Aurora PostgreSQL (Serverless v2)            │
+│ Aurora PostgreSQL/MySQL                      │
 │                                              │
 │ Validates IAM token against:                 │
 │ - cluster resource ID                        │
@@ -136,7 +136,11 @@ The terraform will create the necessary AWS & Redpanda resources
 
 <details>
 <summary>Aurora Postgres</summary>
-Postgres is currently run out of the project root.
+
+```bash
+cd aurora-postgres
+```
+
 </details>
 
 <details>
@@ -168,7 +172,8 @@ psql -h $(terraform output -raw db_cluster_endpoint) \
 
 ```
 
-It will prompt you for the password, which is postgres (unless you changed it in tfvars).   Once authenticated, it will execute the contents of `cdc_setup.sql`
+It will prompt you for the password, which is set in tfvars.   Once authenticated, it will execute the contents of `postgres_cdc_setup.sql`
+
 </details>
 
 <details>
@@ -181,6 +186,8 @@ mysql -h $(terraform output -raw db_cluster_endpoint) \
 -p $(terraform output -raw db_name) < mysql_cdc_setup.sql
 
 ```
+It will prompt you for the password, which is set in tfvars.   Once authenticated, it will execute the contents of `mysql_cdc_setup.sql`
+
 </details>
 
 ### 5.  Verify the pipeline is running ok
@@ -201,7 +208,7 @@ rpk topic consume __redpanda.connect.logs --offset end | grep $(terraform output
 
 You may see a few error messages as the pipeline is becoming active.  If there is a steady flow of errors then you will need to troubleshoot.  But pretty quickly the logs topic will become rather idle, indicating that we can safely move to the next step.
 
-If you see the `postgres_cdc` input go active, then you're probalby in good shape.
+If you see the `postgres_cdc` or `mysql_cdc` input go active, then you're probalby in good shape.
 
 
 ### 6.  Insert rows into the table 
