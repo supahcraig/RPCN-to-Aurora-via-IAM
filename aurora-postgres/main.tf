@@ -420,4 +420,7 @@ output "trusted_principal_role_name" {
   value = local.trusted_principal_role_name
 }
 
+output "generated_policy_json" {
+  value = local_file.iam_policy_json.filename
+}
 

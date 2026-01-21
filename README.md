@@ -160,13 +160,17 @@ The RDS spin up is the longest step by far, which should take 7ish minutes.
 
 ### 3a Permit Redpanda Connect to assume the db-connect role
 
-We will need to add a policy to an existing Redpanda-owned IAM role in order to allow Redpanda Connect the ability to assume the role that allows for database connectivity.   This could be done via terraform with an additional aws provider for your Redpanda env, but it's worthwhile to do this step by hand so you can inspect the policy.  Terraform created a role in the database account allowing rds:db-connect to a specific database/user, and the policy we're going to attach to the Redpanda Connect role will allow Redpanda Connect to assume this role.
+This could be done via terraform with an additional aws provider for your Redpanda env, but I elected to make this step manual to allow you a chance to inspect the permission policy we'll be attaching.
+
+We will need to add a policy to an existing Redpanda-owned IAM role in order to allow Redpanda Connect the ability to assume the role that allows for database connectivity.   Terraform created a role in the database account allowing rds:db-connect to a specific database/user, and the policy we're going to attach to the Redpanda Connect role will allow Redpanda Connect to assume this role.  The policy itself was written out by terraform into `*-generated_x-account-rds-iam-policy.json`
 
 Remember, the role we're attaching to is in your Redpanda account, which for me is my `sandbox` profile.  Terraform applied to the aws acct profile specified in tfvars, which is most likely a different one. 
 
 ```bash
 aws iam put-role-policy \
   --role-name $(terraform output -raw trusted_principal_role_name) \
+  --policy-name "$(terraform output -raw prefix)-allow-x-account-db-connect \
+  --policy-document file://$(terraform output -raw generated_policy_json) \
   --profile sandbox
 ```
 
