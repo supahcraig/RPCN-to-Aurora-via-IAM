@@ -240,6 +240,7 @@ data "aws_caller_identity" "current" {}
 locals {
   trusted_principal_role_name = "redpanda-${var.redpanda_cluster_id}-redpanda-connect-pipeline"
   trusted_principal_role_arn = "arn:aws:iam::${var.redpanda_aws_acct_id}:role/${local.trusted_principal_role_name}"
+  assume_role_policy          = "${var.name_prefix}-assume-dbconnect-policy"
 }
 
 # Role that will be assumed by the principal you pass in via tfvars
@@ -422,5 +423,9 @@ output "trusted_principal_role_name" {
 
 output "generated_policy_json" {
   value = local_file.iam_policy_json.filename
+}
+
+output "assume_role_policy" {
+  value = local.assume_role_policy
 }
 

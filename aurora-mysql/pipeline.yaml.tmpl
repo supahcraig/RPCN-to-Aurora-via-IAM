@@ -64,7 +64,7 @@ output:
     seed_brokers:
       - $${REDPANDA_BROKERS}
 
-    topic: mysql.iam_auth_topic_test
+    topic: ${topic}
 
     tls:
       enabled: true

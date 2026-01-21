@@ -174,6 +174,15 @@ aws iam put-role-policy \
   --profile sandbox
 ```
 
+The put-role-policy command is a "silent-success" command, so you'll need to verify it is there with another aws iam command:
+
+```bash
+aws iam get-role-policy \
+  --role-name $(terraform output -raw trusted_principal_role_name) \
+  --policy-name $(terraform output -raw assume_role_policy) \
+  --profile sandbox
+```
+
 
 ### 4.  Create database user/objects
 

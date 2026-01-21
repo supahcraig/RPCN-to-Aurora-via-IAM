@@ -25,9 +25,5 @@ CREATE TABLE IF NOT EXISTS iamuser_test (
 );
 INSERT INTO iamuser_test VALUES ();
 
----- 4) Optional: a classic username/password user too (if you want both auth methods live)
---CREATE USER IF NOT EXISTS 'demo_pw_user'@'%' IDENTIFIED BY 'Use2demo!';
---GRANT SELECT ON demo_db.* TO 'demo_pw_user'@'%';
-
 FLUSH PRIVILEGES;
 
