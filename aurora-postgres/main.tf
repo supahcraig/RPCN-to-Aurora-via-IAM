@@ -238,7 +238,8 @@ data "aws_caller_identity" "current" {}
 
 # Construct the actual Repdanda Connect pipeline role ARN
 locals {
-  trusted_principal_role_arn = "arn:aws:iam::${var.redpanda_aws_acct_id}:role/redpanda-${var.redpanda_cluster_id}-redpanda-connect-pipeline"
+  trusted_principal_role_name = "redpanda-${var.redpanda_cluster_id}-redpanda-connect-pipeline"
+  trusted_principal_role_arn = "arn:aws:iam::${var.redpanda_aws_acct_id}:role/${local.trusted_principal_role_name}"
 }
 
 # Role that will be assumed by the principal you pass in via tfvars
@@ -414,4 +415,9 @@ output "rpcn_pipeline_id" {
 output "cdc_output_topic" {
   value = redpanda_topic.topic.name
 }
+
+output "trusted_principal_role_name" {
+  value = local.trusted_principal_role_name
+}
+
 
